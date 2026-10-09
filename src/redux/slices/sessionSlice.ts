@@ -1,0 +1,1 @@
+import {createSlice} from '@reduxjs/toolkit'; const initial=[]; const slice=createSlice({name:'sessions',initialState:{items:initial},reducers:{addSession:(s,a)=>{s.items.unshift({...a.payload,id:String(Date.now()),status:'upcoming'})}}}); export const {addSession}=slice.actions; export default slice.reducer;

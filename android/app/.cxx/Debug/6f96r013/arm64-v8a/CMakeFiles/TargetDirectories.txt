@@ -1,0 +1,15 @@
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/CMakeFiles/appmodules.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/CMakeFiles/rebuild_cache.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/rngesturehandler_codegen_autolinked_build/CMakeFiles/react_codegen_rngesturehandler_codegen.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/rngesturehandler_codegen_autolinked_build/CMakeFiles/edit_cache.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/rngesturehandler_codegen_autolinked_build/CMakeFiles/rebuild_cache.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/rnreanimated_autolinked_build/CMakeFiles/react_codegen_rnreanimated.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/rnreanimated_autolinked_build/CMakeFiles/edit_cache.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/rnreanimated_autolinked_build/CMakeFiles/rebuild_cache.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/safeareacontext_autolinked_build/CMakeFiles/react_codegen_safeareacontext.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/safeareacontext_autolinked_build/CMakeFiles/edit_cache.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/safeareacontext_autolinked_build/CMakeFiles/rebuild_cache.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/rnscreens_autolinked_build/CMakeFiles/react_codegen_rnscreens.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/rnscreens_autolinked_build/CMakeFiles/edit_cache.dir
+/Users/kurmato/Desktop/clarity/android/app/.cxx/Debug/6f96r013/arm64-v8a/rnscreens_autolinked_build/CMakeFiles/rebuild_cache.dir

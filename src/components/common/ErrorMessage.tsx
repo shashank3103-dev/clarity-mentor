@@ -1,0 +1,1 @@
+import React from 'react'; import {Text,StyleSheet} from 'react-native'; import {colors} from '../../theme'; export default function ErrorMessage({message}){return <Text style={styles.text}>{message}</Text>};const styles=StyleSheet.create({text:{color:colors.danger,textAlign:'center',padding:12}});

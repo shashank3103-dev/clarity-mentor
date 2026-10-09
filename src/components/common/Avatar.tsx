@@ -1,0 +1,2 @@
+import React from 'react'; import {View,Text,StyleSheet} from 'react-native'; import {colors} from '../../theme';
+export default function Avatar({label='CM',size=48}){return <View accessibilityLabel={`${label} avatar`} style={[styles.avatar,{width:size,height:size,borderRadius:size/2}]}><Text style={[styles.text,{fontSize:size*.29}]}>{label}</Text></View>}; const styles=StyleSheet.create({avatar:{backgroundColor:'#D9E5D5',alignItems:'center',justifyContent:'center'},text:{color:colors.primary,fontWeight:'800'}});
