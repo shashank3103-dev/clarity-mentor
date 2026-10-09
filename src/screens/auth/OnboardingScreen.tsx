@@ -60,8 +60,8 @@ export default function OnboardingScreen({navigation}: any) {
         },
       ]}>
       <StatusBar
-        translucent
-        backgroundColor="transparent"
+        translucent={false}
+        backgroundColor={theme.colors.background}
         barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'}
       />
 

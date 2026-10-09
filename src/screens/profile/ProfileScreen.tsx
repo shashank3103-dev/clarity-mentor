@@ -16,7 +16,7 @@ const links = [
   ['Help & Support', 'HelpSupport'],
   ['Privacy', 'Settings'],
 ];
-const socials = ['facebook', 'x', 'instagram', 'linkedin', 'ln'] as const;
+const socials = ['facebook', 'x', 'instagram', 'ln'] as const;
 
 export default function ProfileScreen({navigation}: any) {
   const p = useSelector((s: any) => s.user.profile);

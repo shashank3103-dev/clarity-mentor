@@ -23,7 +23,7 @@ export default function SplashScreen({ navigation }: any) {
 
   return (
     <View style={[styles.wrap, { backgroundColor: theme.colors.primary, paddingTop: insets.top }]}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <StatusBar translucent={false} backgroundColor={theme.colors.primary} barStyle="light-content" />
       <View style={styles.logoShell}>
         <Logo width={132} height={65} />
       </View>

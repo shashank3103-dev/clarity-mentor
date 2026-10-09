@@ -14,7 +14,11 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
 
   return (
     <View style={[styles.wrap, { backgroundColor: theme.colors.background }]}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      <StatusBar
+        translucent={false}
+        backgroundColor={theme.colors.background}
+        barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'}
+      />
       <CustomHeader title="Reset Password" onBack={() => navigation.goBack()} />
       
       <View style={styles.content}>

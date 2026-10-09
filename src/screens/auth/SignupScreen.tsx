@@ -16,7 +16,11 @@ export default function SignupScreen({navigation}: any) {
 
   return (
     <View style={[styles.screen, {backgroundColor: theme.colors.background}]}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      <StatusBar
+        translucent={false}
+        backgroundColor={theme.colors.background}
+        barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'}
+      />
       <CustomHeader
         title="Create Account"
         onBack={() => navigation.goBack()}

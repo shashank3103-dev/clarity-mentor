@@ -29,7 +29,11 @@ export default function LoginScreen({ navigation }: any) {
       contentContainerStyle={[styles.wrap, { backgroundColor: theme.colors.background, paddingTop: insets.top + 16 }]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled">
-      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      <StatusBar
+        translucent={false}
+        backgroundColor={theme.colors.background}
+        barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'}
+      />
 
       <View style={styles.logoContainer}>
         <Logo width={120} height={58} />

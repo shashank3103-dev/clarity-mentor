@@ -108,8 +108,8 @@ export default function HomeScreen({navigation}: any) {
   return (
     <View style={[styles.screen, {backgroundColor: theme.colors.background}]}>
       <StatusBar
-        translucent
-        backgroundColor="transparent"
+        translucent={false}
+        backgroundColor={theme.colors.background}
         barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'}
       />
 
