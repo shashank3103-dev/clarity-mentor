@@ -1,1 +1,28 @@
-import React from 'react'; import {Text,StyleSheet} from 'react-native'; import {colors} from '../../theme'; export default function ErrorMessage({message}){return <Text style={styles.text}>{message}</Text>};const styles=StyleSheet.create({text:{color:colors.danger,textAlign:'center',padding:12}});
+import React from 'react';
+import {Text, StyleSheet} from 'react-native';
+import {useTheme} from '../../theme/useTheme';
+
+export default function ErrorMessage({message}: {message: string}) {
+  const {theme} = useTheme();
+
+  return (
+    <Text
+      style={[
+        styles.text,
+        {
+          color: theme.colors.error,
+          fontFamily: theme.fonts.medium,
+        },
+      ]}>
+      {message}
+    </Text>
+  );
+}
+
+const styles = StyleSheet.create({
+  text: {
+    textAlign: 'center',
+    padding: 12,
+    fontSize: 14,
+  },
+});

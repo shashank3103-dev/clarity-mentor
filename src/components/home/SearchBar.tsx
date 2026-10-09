@@ -1,1 +1,51 @@
-import React from 'react';import {Pressable,Text,StyleSheet} from 'react-native';import {colors} from '../../theme';export default function SearchBar({onPress}){return <Pressable accessibilityRole="button" accessibilityLabel="Search mentors" onPress={onPress} style={styles.box}><Text style={styles.icon}>⌕</Text><Text style={styles.text}>Search for mentors or topics...</Text></Pressable>};const styles=StyleSheet.create({box:{height:54,borderRadius:14,backgroundColor:colors.white,borderWidth:1,borderColor:colors.border,flexDirection:'row',alignItems:'center',paddingHorizontal:16},icon:{fontSize:26,color:colors.textSecondary,marginRight:10},text:{color:colors.textSecondary,fontSize:15}});
+import React from 'react';
+import {Pressable, Text, StyleSheet} from 'react-native';
+import {useTheme} from '../../theme/useTheme';
+import AssetIcon from '../common/AssetIcon';
+
+export default function SearchBar({onPress}: {onPress: () => void}) {
+  const {theme} = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Search mentors"
+      onPress={onPress}
+      style={[
+        styles.box,
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.border,
+        },
+      ]}>
+      <AssetIcon name="search" size="sm" style={styles.icon} />
+      <Text
+        style={[
+          styles.text,
+          {
+            color: theme.colors.mutedText,
+            fontFamily: theme.fonts.regular,
+          },
+        ]}>
+        Search for mentors or topics...
+      </Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  box: {
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  icon: {
+    marginRight: 10,
+  },
+  text: {
+    fontSize: 15,
+  },
+});

@@ -4,7 +4,6 @@
     "allowJs": true,
     "checkJs": false,
     "strict": false,
-    "noCheck": true,
     "noEmit": true,
     "jsx": "react-jsx"
   },

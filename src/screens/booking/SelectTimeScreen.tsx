@@ -1,1 +1,136 @@
-import React from 'react';import {View,Text,StyleSheet} from 'react-native';import {useDispatch,useSelector} from 'react-redux';import TimeSlot from '../../components/booking/TimeSlot';import Button from '../../components/common/Button';import {setTime} from '../../redux/slices/bookingSlice';import {colors,spacing} from '../../theme';export default function SelectTimeScreen({navigation}){const{mentor,time,date}=useSelector(s=>s.booking),d=useDispatch(),times=mentor?.availability||[];return <View style={styles.page}><Text style={styles.step}>STEP 2 OF 3</Text><Text style={styles.title}>Choose a time</Text><Text style={styles.body}>{date} · Times shown in your local timezone</Text><Text style={styles.avail}>Available times</Text><View style={styles.grid}>{times.map(x=><TimeSlot key={x} time={x} selected={time===x} onPress={()=>d(setTime(x))}/>)}</View><Button title="Review booking" onPress={()=>navigation.navigate('Booking')} style={!time&&styles.disabled}/></View>};const styles=StyleSheet.create({page:{flex:1,padding:spacing.lg,backgroundColor:colors.background},step:{fontWeight:'800',fontSize:12,letterSpacing:1,color:colors.textSecondary,marginTop:20},title:{fontSize:30,fontWeight:'800',color:colors.primary,marginTop:10},body:{color:colors.textSecondary,marginTop:8},avail:{fontSize:17,fontWeight:'800',color:colors.primary,marginTop:38,marginBottom:15},grid:{flexDirection:'row',flexWrap:'wrap',gap:10},disabled:{opacity:.45,marginTop:'auto'}});
+import React from 'react';
+import {View, Text, StyleSheet, ScrollView} from 'react-native';
+import {useDispatch, useSelector} from 'react-redux';
+import TimePicker from '../../components/booking/TimePicker';
+import Button from '../../components/common/Button';
+import CustomHeader from '../../components/common/CustomHeader';
+import {setTime} from '../../redux/slices/bookingSlice';
+import {useTheme} from '../../theme/useTheme';
+
+export default function SelectTimeScreen({navigation}: any) {
+  const {theme} = useTheme();
+  const {mentor, time, date} = useSelector((s: any) => s.booking);
+  const dispatch = useDispatch();
+  const times = mentor?.availability || [];
+
+  return (
+    <View style={[styles.page, {backgroundColor: theme.colors.background}]}>
+      <CustomHeader
+        title="Select Time"
+        onBack={() => navigation.goBack()}
+      />
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          {paddingHorizontal: theme.spacing.lg},
+        ]}
+        showsVerticalScrollIndicator={false}>
+        <Text
+          style={[
+            styles.step,
+            {color: theme.colors.secondary, fontFamily: theme.fonts.bold},
+          ]}>
+          STEP 2 OF 3
+        </Text>
+        <Text
+          style={[
+            styles.title,
+            {color: theme.colors.text, fontFamily: theme.fonts.bold},
+          ]}>
+          Choose a time
+        </Text>
+        <Text
+          style={[
+            styles.body,
+            {color: theme.colors.mutedText, fontFamily: theme.fonts.regular},
+          ]}>
+          {date || 'Selected day'} · Times shown in your local timezone (IST)
+        </Text>
+
+        <Text
+          style={[
+            styles.avail,
+            {color: theme.colors.text, fontFamily: theme.fonts.bold},
+          ]}>
+          Available slots
+        </Text>
+
+        {/* Interactive TimePicker with Period Filters */}
+        <TimePicker
+          selectedTime={time}
+          onSelectTime={t => dispatch(setTime(t))}
+          availableTimes={times}
+        />
+
+        {time ? (
+          <View
+            style={[
+              styles.selectedBanner,
+              {
+                backgroundColor: theme.colors.surfaceMuted,
+                borderColor: theme.colors.border,
+              },
+            ]}>
+            <Text
+              style={[
+                styles.selectedText,
+                {color: theme.colors.text, fontFamily: theme.fonts.medium},
+              ]}>
+              Selected: <Text style={{fontFamily: theme.fonts.bold}}>{time}</Text> (30 mins)
+            </Text>
+          </View>
+        ) : null}
+
+        <Button
+          title="Review booking"
+          onPress={() => navigation.navigate('Booking')}
+          disabled={!time}
+          style={styles.actionBtn}
+        />
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  page: {
+    flex: 1,
+  },
+  content: {
+    paddingTop: 12,
+    paddingBottom: 40,
+  },
+  step: {
+    fontSize: 10,
+    letterSpacing: 1.1,
+    marginTop: 8,
+  },
+  title: {
+    fontSize: 22,
+    marginTop: 6,
+  },
+  body: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  avail: {
+    fontSize: 14.5,
+    marginTop: 22,
+    marginBottom: 8,
+  },
+  selectedBanner: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  selectedText: {
+    fontSize: 13,
+  },
+  actionBtn: {
+    marginTop: 24,
+    height: 48,
+  },
+});

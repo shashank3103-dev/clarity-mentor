@@ -1,1 +1,15 @@
-import React from 'react';import {View,Text,Pressable,StyleSheet} from 'react-native';import {colors} from '../../theme';export default function Header({title,navigation,back=true,right}){return <View style={styles.row}>{back?<Pressable accessibilityLabel="Go back" onPress={()=>navigation.goBack()} style={styles.back}><Text>‹</Text></Pressable>:<View style={styles.back}/>}<Text numberOfLines={1} style={styles.title}>{title}</Text>{right||<View style={styles.back}/>}</View>};const styles=StyleSheet.create({row:{height:60,alignItems:'center',flexDirection:'row',justifyContent:'space-between'},back:{width:44,height:44,alignItems:'center',justifyContent:'center'},title:{fontSize:17,fontWeight:'800',color:colors.primary,maxWidth:'70%'}});
+import React from 'react';
+import CustomHeader, {CustomHeaderProps} from './CustomHeader';
+
+export default function Header(props: any) {
+  return (
+    <CustomHeader
+      title={props.title}
+      subtitle={props.subtitle}
+      onBack={props.navigation?.goBack || props.onBack}
+      showBack={props.back !== false}
+      right={props.right}
+    />
+  );
+}
+export {CustomHeader};

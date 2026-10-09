@@ -1,1 +1,54 @@
-import React from 'react';import {Text,StyleSheet} from 'react-native';import {colors} from '../../theme';export default function MentorRating({rating,sessions}){return <Text style={styles.text}>★ {rating} <Text style={styles.muted}>  ·  {sessions}+ sessions</Text></Text>};const styles=StyleSheet.create({text:{fontSize:13,fontWeight:'700',color:'#B27507'},muted:{color:colors.textSecondary,fontWeight:'500'}});
+import React from 'react';
+import {Text, StyleSheet, View} from 'react-native';
+import {useTheme} from '../../theme/useTheme';
+import AssetIcon from '../common/AssetIcon';
+
+export default function MentorRating({
+  rating,
+  sessions,
+}: {
+  rating: number;
+  sessions: number;
+}) {
+  const {theme} = useTheme();
+
+  return (
+    <View style={styles.row}>
+      <AssetIcon name="star" size="xs" accessibilityLabel="Rating" />
+      <Text
+        style={[
+          styles.text,
+          {
+            color: theme.colors.star,
+            fontFamily: theme.fonts.bold,
+          },
+        ]}>
+        {rating}
+      </Text>
+      <Text
+        style={[
+          styles.muted,
+          {
+            color: theme.colors.mutedText,
+            fontFamily: theme.fonts.medium,
+          },
+        ]}>
+        {' '}· {sessions}+ sessions
+      </Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  text: {
+    fontSize: 13,
+  },
+  muted: {
+    fontSize: 13,
+  },
+});
