@@ -1,12 +1,93 @@
-import React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View, Text, StyleSheet, Linking, Alert, ScrollView} from 'react-native';
 import Button from '../../components/common/Button';
 import CustomHeader from '../../components/common/CustomHeader';
+import ErrorMessage from '../../components/common/ErrorMessage';
 import {useTheme} from '../../theme/useTheme';
+import {getMeetingLink, markSessionCompleteBySeeker} from '../../api/seekerApi';
+import {showError, showInfo} from '../../utils/appFeedback';
 
 export default function SessionDetailsScreen({route, navigation}: any) {
   const {theme} = useTheme();
   const s = route.params?.session;
+
+  const [meetingUrl, setMeetingUrl] = useState<string | null>(null);
+  const [loadingMeet, setLoadingMeet] = useState(false);
+  const [markingComplete, setMarkingComplete] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(s?.status === 'completed');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (s?.id) {
+      getMeetingLink(s.id)
+        .then(res => {
+          const url =
+            res.data?.meet_link ||
+            res.data?.link ||
+            res.data?.url ||
+            res.data?.data?.meet_link;
+          if (url) setMeetingUrl(url);
+        })
+        .catch(() => {});
+    }
+  }, [s?.id]);
+
+  const handleJoin = async () => {
+    if (meetingUrl) {
+      Linking.openURL(meetingUrl).catch(() => {
+        showError('Unable to open meeting link.', 'Link Error');
+      });
+    } else {
+      setLoadingMeet(true);
+      try {
+        const res = await getMeetingLink(s?.id || '1');
+        const url =
+          res.data?.meet_link ||
+          res.data?.link ||
+          res.data?.url ||
+          'https://meet.google.com';
+        setMeetingUrl(url);
+        Linking.openURL(url);
+      } catch (err: any) {
+        showInfo(
+          'Meeting link will become active 10 minutes prior to your scheduled session.',
+          'Meeting Room',
+        );
+      } finally {
+        setLoadingMeet(false);
+      }
+    }
+  };
+
+  const handleMarkComplete = async () => {
+    if (markingComplete) return;
+    setMarkingComplete(true);
+    setError(null);
+
+    try {
+      await markSessionCompleteBySeeker(s?.id || '1');
+      setIsCompleted(true);
+      Alert.alert(
+        'Session Completed',
+        'Thank you! How was your experience? Would you like to leave a review for your mentor?',
+        [
+          {text: 'Not Now', style: 'cancel'},
+          {
+            text: 'Leave Review',
+            onPress: () =>
+              navigation.navigate('MentorReviews', {
+                session_id: s?.id,
+                mentor: s?.mentor,
+              }),
+          },
+        ],
+      );
+    } catch (err: any) {
+      setError(err?.message || 'Failed to mark session as complete.');
+    } finally {
+      setMarkingComplete(false);
+    }
+  };
 
   return (
     <View style={[styles.page, {backgroundColor: theme.colors.background}]}>
@@ -14,7 +95,9 @@ export default function SessionDetailsScreen({route, navigation}: any) {
         title="Session Details"
         onBack={() => navigation?.goBack?.()}
       />
-      <View style={{flex: 1, padding: theme.spacing.lg}}>
+      <ScrollView
+        contentContainerStyle={{padding: theme.spacing.lg}}
+        showsVerticalScrollIndicator={false}>
         <Text
           style={[
             styles.title,
@@ -27,8 +110,10 @@ export default function SessionDetailsScreen({route, navigation}: any) {
             styles.role,
             {color: theme.colors.mutedText, fontFamily: theme.fonts.regular},
           ]}>
-          {s?.mentor?.role}
+          {s?.mentor?.role || 'Mentor'}
         </Text>
+
+        {error ? <ErrorMessage message={error} /> : null}
 
         <View
           style={[
@@ -65,7 +150,7 @@ export default function SessionDetailsScreen({route, navigation}: any) {
               styles.value,
               {color: theme.colors.text, fontFamily: theme.fonts.semiBold},
             ]}>
-            30 minutes
+            {s?.duration || 30} minutes
           </Text>
 
           <Text
@@ -73,19 +158,66 @@ export default function SessionDetailsScreen({route, navigation}: any) {
               styles.label,
               {color: theme.colors.secondary, fontFamily: theme.fonts.bold},
             ]}>
-            PRIVATE SESSION
+            STATUS
+          </Text>
+          <Text
+            style={[
+              styles.value,
+              {
+                color: isCompleted
+                  ? theme.colors.secondary
+                  : theme.colors.text,
+                fontFamily: theme.fonts.semiBold,
+              },
+            ]}>
+            {isCompleted ? 'Completed' : 'Upcoming'}
+          </Text>
+
+          <Text
+            style={[
+              styles.label,
+              {color: theme.colors.secondary, fontFamily: theme.fonts.bold},
+            ]}>
+            PRIVATE MEETING LINK
           </Text>
           <Text
             style={[
               styles.value,
               {color: theme.colors.mutedText, fontFamily: theme.fonts.regular},
             ]}>
-            Your meeting link will be available here before the session.
+            {meetingUrl
+              ? meetingUrl
+              : 'Your secure Google Meet link is generated automatically.'}
           </Text>
         </View>
 
-        <Button title="Join session" onPress={() => {}} />
-      </View>
+        {!isCompleted ? (
+          <>
+            <Button
+              title="Join session"
+              onPress={handleJoin}
+              loading={loadingMeet}
+              style={{marginBottom: 12}}
+            />
+            <Button
+              title="Mark session as complete"
+              variant="outline"
+              loading={markingComplete}
+              onPress={handleMarkComplete}
+            />
+          </>
+        ) : (
+          <Button
+            title="Leave a review"
+            onPress={() =>
+              navigation.navigate('MentorReviews', {
+                session_id: s?.id,
+                mentor: s?.mentor,
+              })
+            }
+          />
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -106,7 +238,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 18,
     borderWidth: 1,
-    marginVertical: 24,
+    marginVertical: 20,
   },
   label: {
     fontSize: 11,

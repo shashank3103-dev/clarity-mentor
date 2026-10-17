@@ -13,6 +13,7 @@ import HelpSupportScreen from '../screens/misc/HelpSupportScreen';
 import Avatar from '../components/common/Avatar';
 import Logo from '../components/common/Logo';
 import {useTheme} from '../theme/useTheme';
+import {tokenStorage} from '../storage/tokenStorage';
 
 const Drawer = createDrawerNavigator();
 
@@ -144,7 +145,10 @@ function Content(props: any) {
 
       {/* Logout */}
       <Pressable
-        onPress={() => props.navigation.getParent()?.navigate('Login')}
+        onPress={async () => {
+          await tokenStorage.clearAll();
+          props.navigation.getParent()?.navigate('Login');
+        }}
         accessibilityRole="button"
         style={[styles.logout, {backgroundColor: theme.colors.surfaceMuted}]}>
         <Text

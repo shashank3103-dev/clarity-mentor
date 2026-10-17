@@ -1,17 +1,57 @@
-import React, {useState} from 'react';
-import {View, Text, Pressable, StyleSheet} from 'react-native';
+import React, {useState, useEffect, useCallback} from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  RefreshControl,
+} from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import MentorList from '../../components/mentor/MentorList';
-import {selectMentor} from '../../redux/slices/mentorSlice';
+import {selectMentor, setMentors} from '../../redux/slices/mentorSlice';
+import {getMentors} from '../../services/mentorService';
 import {useTheme} from '../../theme/useTheme';
 import AssetIcon from '../../components/common/AssetIcon';
 import CustomHeader from '../../components/common/CustomHeader';
+import LoadingIndicator from '../../components/common/LoadingIndicator';
+import ErrorMessage from '../../components/common/ErrorMessage';
+import EmptyState from '../../components/common/EmptyState';
+import Button from '../../components/common/Button';
 
 export default function MentorListScreen({navigation, route}: any) {
   const [filter, setFilter] = useState(route.params?.category || 'All');
   const items = useSelector((s: any) => s.mentors.items);
-  const d = useDispatch();
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const dispatch = useDispatch();
   const {theme} = useTheme();
+
+  const fetchMentorsList = useCallback(async () => {
+    try {
+      setError(null);
+      const data = await getMentors({
+        skip: 0,
+        limit: 50,
+      });
+      if (data && data.length > 0) {
+        dispatch(setMentors(data));
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to load mentors.');
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    fetchMentorsList();
+  }, [fetchMentorsList]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchMentorsList();
+    setRefreshing(false);
+  };
 
   const shown =
     filter === 'All'
@@ -20,7 +60,9 @@ export default function MentorListScreen({navigation, route}: any) {
           (m: any) =>
             m.expertise.some((e: string) =>
               e.toLowerCase().includes(filter.toLowerCase()),
-            ) || (filter === 'Career' && m.expertise.some((e: string) => e.includes('Career'))),
+            ) ||
+            (filter === 'Career' &&
+              m.expertise.some((e: string) => e.includes('Career'))),
         );
 
   return (
@@ -94,14 +136,47 @@ export default function MentorListScreen({navigation, route}: any) {
           })}
         </View>
 
-        <MentorList
-          items={shown}
-          onSelect={(m: any) => {
-            d(selectMentor(m));
-            navigation.navigate('MentorDetails');
-          }}
-          contentContainerStyle={styles.list}
-        />
+        {error ? (
+          <View style={styles.errorContainer}>
+            <ErrorMessage message={error} />
+            <Button
+              title="Try Again"
+              variant="outline"
+              height={40}
+              onPress={fetchMentorsList}
+              style={{marginTop: 8, alignSelf: 'center'}}
+            />
+          </View>
+        ) : null}
+
+        {loading && !refreshing ? (
+          <LoadingIndicator fullScreen={false} />
+        ) : (
+          <MentorList
+            items={shown}
+            onSelect={(m: any) => {
+              dispatch(selectMentor(m));
+              navigation.navigate('MentorDetails');
+            }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={theme.colors.secondary}
+                colors={[theme.colors.secondary]}
+              />
+            }
+            ListEmptyComponent={
+              <EmptyState
+                title="No mentors found"
+                description={`We couldn't find any mentors matching "${filter}". Try selecting another category.`}
+                actionTitle="Show all mentors"
+                action={() => setFilter('All')}
+              />
+            }
+            contentContainerStyle={styles.list}
+          />
+        )}
       </View>
     </View>
   );
@@ -152,5 +227,9 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingBottom: 24,
+  },
+  errorContainer: {
+    paddingVertical: 12,
+    alignItems: 'center',
   },
 });

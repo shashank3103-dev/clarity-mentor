@@ -1,17 +1,20 @@
-import React from 'react';
-import {ScrollView, View, Text, Pressable, StyleSheet, Image} from 'react-native';
+import React, {useState, useEffect, useCallback} from 'react';
+import {ScrollView, View, Text, Pressable, StyleSheet, Image, RefreshControl} from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import Avatar from '../../components/common/Avatar';
 import AssetIcon from '../../components/common/AssetIcon';
 import CustomHeader from '../../components/common/CustomHeader';
 import {logout} from '../../redux/slices/authSlice';
+import {updateProfile} from '../../redux/slices/userSlice';
 import {useTheme} from '../../theme';
+import {getSeekerProfile, getSeekerMe} from '../../api/seekerApi';
+import {tokenStorage} from '../../storage/tokenStorage';
 
 const links = [
   ['My Sessions', 'Sessions'],
   ['Saved Mentors', 'MentorList'],
   ['Notifications', 'Notifications'],
-  ['Payment Methods', 'Settings'],
+  ['Payment History', 'Settings'],
   ['Settings', 'Settings'],
   ['Help & Support', 'HelpSupport'],
   ['Privacy', 'Settings'],
@@ -20,8 +23,46 @@ const socials = ['facebook', 'x', 'instagram', 'ln'] as const;
 
 export default function ProfileScreen({navigation}: any) {
   const p = useSelector((s: any) => s.user.profile);
+  const [refreshing, setRefreshing] = useState(false);
   const d = useDispatch();
   const {theme} = useTheme();
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      const res = await getSeekerProfile();
+      const data = res.data?.data || res.data;
+      if (data) {
+        d(
+          updateProfile({
+            name: data.full_name || data.name || p.name,
+            role: data.headline || data.role || data.bio || p.role,
+            email: data.email || p.email,
+          }),
+        );
+      }
+    } catch {
+      // Ignore background profile sync failure
+    }
+  }, [d, p.email, p.name, p.role]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchProfile();
+    setRefreshing(false);
+  };
+
+  const handleLogout = async () => {
+    await tokenStorage.clearAll();
+    d(logout());
+    navigation.reset({
+      index: 0,
+      routes: [{name: 'Login'}],
+    });
+  };
 
   return (
     <View style={[styles.screen, {backgroundColor: theme.colors.background}]}>
@@ -32,9 +73,17 @@ export default function ProfileScreen({navigation}: any) {
       />
       <ScrollView
         contentContainerStyle={[styles.wrap, {paddingHorizontal: 20}]}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.secondary}
+            colors={[theme.colors.secondary]}
+          />
+        }>
         <View style={styles.profile}>
-          <Avatar label="BP" size={76} />
+          <Avatar label={p.name ? p.name.slice(0, 2).toUpperCase() : 'BP'} size={76} />
           <Text
             style={[
               styles.name,
@@ -91,7 +140,7 @@ export default function ProfileScreen({navigation}: any) {
             </Pressable>
           ))}
           <Pressable
-            onPress={() => d(logout())}
+            onPress={handleLogout}
             style={[styles.row, {borderBottomWidth: 0}]}>
             <Text
               style={[

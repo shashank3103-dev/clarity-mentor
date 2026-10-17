@@ -1,4 +1,4 @@
-import React, {useCallback} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
   FlatList,
   Image,
@@ -8,10 +8,12 @@ import {
   Text,
   View,
   StatusBar,
+  RefreshControl,
 } from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import {categories} from '../../constants/categories';
-import {selectMentor} from '../../redux/slices/mentorSlice';
+import {selectMentor, setMentors} from '../../redux/slices/mentorSlice';
+import {getMentors} from '../../services/mentorService';
 import {useTheme} from '../../theme/useTheme';
 import Button from '../../components/common/Button';
 import CustomCard from '../../components/common/CustomCard';
@@ -33,6 +35,28 @@ export default function HomeScreen({navigation}: any) {
   const {theme} = useTheme();
   const mentors = useSelector((state: any) => state.mentors.items);
   const dispatch = useDispatch();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchMentorsData = useCallback(async () => {
+    try {
+      const data = await getMentors({skip: 0, limit: 20});
+      if (data && data.length > 0) {
+        dispatch(setMentors(data));
+      }
+    } catch (err) {
+      console.log('[HomeScreen] fetchMentorsData error:', err);
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    fetchMentorsData();
+  }, [fetchMentorsData]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchMentorsData();
+    setRefreshing(false);
+  };
 
   const openMentor = useCallback(
     (mentor: any) => {
@@ -123,7 +147,15 @@ export default function HomeScreen({navigation}: any) {
       <ScrollView
         style={{backgroundColor: theme.colors.background}}
         contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.secondary}
+            colors={[theme.colors.secondary]}
+          />
+        }>
         {/* Hero Card */}
         <View style={[styles.hero, {backgroundColor: theme.colors.heroBg}]}>
           <Text

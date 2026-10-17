@@ -1,5 +1,5 @@
-import React from 'react';
-import {ScrollView, View, Text, StyleSheet, Pressable} from 'react-native';
+import React, {useState, useEffect, useCallback} from 'react';
+import {ScrollView, View, Text, StyleSheet, Pressable, RefreshControl} from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Avatar from '../../components/common/Avatar';
@@ -9,17 +9,82 @@ import Button from '../../components/common/Button';
 import {startBooking} from '../../redux/slices/bookingSlice';
 import {useTheme} from '../../theme/useTheme';
 import CustomHeader from '../../components/common/CustomHeader';
+import {getMentorAvailabilitySettings, getMentorProfile} from '../../api/mentorApi';
 
 export default function MentorDetailsScreen({navigation}: any) {
-  const m =
+  const selectedMentor =
     useSelector((s: any) => s.mentors.selected) ||
     useSelector((s: any) => s.mentors.items[0]);
+  const [m, setM] = useState(selectedMentor);
+  const [availabilitySlots, setAvailabilitySlots] = useState<string[]>(
+    selectedMentor?.availability || ['10:00 AM', '02:00 PM', '06:00 PM'],
+  );
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
   const d = useDispatch();
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
 
+  const fetchMentorLiveDetails = useCallback(async () => {
+    if (!selectedMentor) return;
+    const slug =
+      selectedMentor.slug ||
+      selectedMentor.name?.toLowerCase().replace(/\s+/g, '-') ||
+      'mentor';
+
+    try {
+      const [availRes, profileRes] = await Promise.allSettled([
+        getMentorAvailabilitySettings(slug),
+        getMentorProfile(slug),
+      ]);
+
+      if (availRes.status === 'fulfilled' && availRes.value?.data) {
+        const slotsData =
+          availRes.value.data.slots ||
+          availRes.value.data.data?.slots ||
+          availRes.value.data.data?.available_slots;
+        if (Array.isArray(slotsData) && slotsData.length > 0) {
+          const formatted = slotsData.map((s: any) =>
+            typeof s === 'string'
+              ? s
+              : s.start_time
+              ? `${s.start_time} - ${s.end_time || ''}`
+              : 'Slot',
+          );
+          setAvailabilitySlots(formatted);
+        }
+      }
+
+      if (profileRes.status === 'fulfilled' && profileRes.value?.data) {
+        const pData = profileRes.value.data.data || profileRes.value.data;
+        if (pData) {
+          setM((prev: any) => ({
+            ...prev,
+            ...pData,
+            name: pData.full_name || pData.name || prev.name,
+            bio: pData.bio || pData.about_me || prev.bio,
+            price: pData.hourly_rate || prev.price,
+          }));
+        }
+      }
+    } catch (err) {
+      console.log('[MentorDetailsScreen] Live details fetch error:', err);
+    }
+  }, [selectedMentor]);
+
+  useEffect(() => {
+    fetchMentorLiveDetails();
+  }, [fetchMentorLiveDetails]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchMentorLiveDetails();
+    setRefreshing(false);
+  };
+
   const book = () => {
-    d(startBooking(m));
+    d(startBooking({...m, availability: availabilitySlots}));
     navigation.navigate('SelectDate');
   };
 
@@ -34,7 +99,15 @@ export default function MentorDetailsScreen({navigation}: any) {
           styles.scroll,
           {paddingBottom: (insets.bottom > 0 ? insets.bottom : 0) + 104},
         ]}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.secondary}
+            colors={[theme.colors.secondary]}
+          />
+        }>
         {/* Hero Banner with Avatar */}
         <View
           style={[
@@ -397,7 +470,7 @@ export default function MentorDetailsScreen({navigation}: any) {
               Earliest open slots for 1-on-1 sessions:
             </Text>
             <View style={styles.availWrap}>
-              <MentorAvailability times={m.availability} />
+              <MentorAvailability times={availabilitySlots} />
             </View>
           </View>
         </View>

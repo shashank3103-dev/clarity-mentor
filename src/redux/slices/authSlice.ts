@@ -1,32 +1,63 @@
-import { createSlice } from "@reduxjs/toolkit";
+import {createSlice, PayloadAction} from '@reduxjs/toolkit';
+import {tokenStorage} from '../../storage/tokenStorage';
+
+export interface AuthState {
+  user: any | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  loading: boolean;
+  error: string | null;
+  onboarded: boolean;
+}
+
+const initialState: AuthState = {
+  user: null,
+  token: null,
+  isAuthenticated: false,
+  loading: false,
+  error: null,
+  onboarded: false,
+};
+
 const slice = createSlice({
-  name: "auth",
-  initialState: {
-    user: null,
-    token: null,
-    isAuthenticated: false,
-    loading: false,
-    error: null,
-    onboarded: false,
-  },
+  name: 'auth',
+  initialState,
   reducers: {
-    completeOnboarding: (s) => {
+    completeOnboarding: s => {
       s.onboarded = true;
     },
-    loginSuccess: (s, a) => {
-      s.user = a.payload || {
-        name: "Bhanu Pratap",
-        role: "Software Developer",
-      };
-      s.token = "mock-token";
-      s.isAuthenticated = true;
+    setLoading: (s, a: PayloadAction<boolean>) => {
+      s.loading = a.payload;
     },
-    logout: (s) => {
+    setError: (s, a: PayloadAction<string | null>) => {
+      s.error = a.payload;
+      s.loading = false;
+    },
+    loginSuccess: (s, a: PayloadAction<any>) => {
+      const payload = a.payload;
+      const user = payload?.user || (payload?.email ? payload : {
+        name: 'Bhanu Pratap',
+        role: 'Software Developer',
+      });
+      const token = payload?.token || 'mock-token';
+
+      s.user = user;
+      s.token = token;
+      s.isAuthenticated = true;
+      s.loading = false;
+      s.error = null;
+    },
+    logout: s => {
       s.user = null;
       s.token = null;
       s.isAuthenticated = false;
+      s.loading = false;
+      s.error = null;
+      tokenStorage.clearAll().catch(() => {});
     },
   },
 });
-export const { completeOnboarding, loginSuccess, logout } = slice.actions;
+
+export const {completeOnboarding, setLoading, setError, loginSuccess, logout} =
+  slice.actions;
 export default slice.reducer;

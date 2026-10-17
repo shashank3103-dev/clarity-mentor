@@ -25,7 +25,7 @@ export default function BecomeMentorScreen({navigation}: any) {
         </Text>
         <Button
           title="Apply to become a mentor"
-          onPress={() => {}}
+          onPress={() => navigation.navigate('Signup', {role: 'mentor'})}
           style={styles.button}
         />
       </ScrollView>
