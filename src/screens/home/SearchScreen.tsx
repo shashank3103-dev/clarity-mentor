@@ -1,6 +1,11 @@
-import React, {useState, useMemo} from 'react';
+import React, {useEffect, useState} from 'react';
 import {View, TextInput, StyleSheet} from 'react-native';
-import {useDispatch, useSelector} from 'react-redux';
+import {useDispatch} from 'react-redux';
+import {mentorService} from '../../services/mentorService';
+import {normalizeMentor} from '../../utils/mentor';
+import useAsync from '../../hooks/useAsync';
+import ScreenState from '../../components/common/ScreenState';
+import EmptyState from '../../components/common/EmptyState';
 import MentorList from '../../components/mentor/MentorList';
 import {selectMentor} from '../../redux/slices/mentorSlice';
 import CustomHeader from '../../components/common/CustomHeader';
@@ -9,18 +14,23 @@ import {useTheme} from '../../theme/useTheme';
 export default function SearchScreen({navigation}: any) {
   const {theme} = useTheme();
   const [q, setQ] = useState('');
-  const items = useSelector((s: any) => s.mentors.items);
+  const [query, setQuery] = useState('');
   const d = useDispatch();
 
-  const filtered = useMemo(
-    () =>
-      items.filter((m: any) =>
-        (m.name + m.role + m.expertise.join(' '))
-          .toLowerCase()
-          .includes(q.toLowerCase()),
-      ),
-    [q, items],
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(q.trim()), 400);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const {data, loading, error, reload} = useAsync(
+    async () => {
+      const res = await mentorService.getMentors(1, 20, {search: query});
+      return (res?.data || []).map(normalizeMentor);
+    },
+    [query],
+    query.length > 0,
   );
+  const filtered = query ? data || [] : [];
 
   return (
     <View style={[styles.page, {backgroundColor: theme.colors.background}]}>
@@ -45,14 +55,24 @@ export default function SearchScreen({navigation}: any) {
             },
           ]}
         />
-        <MentorList
-          items={filtered}
-          onSelect={m => {
-            d(selectMentor(m));
-            navigation.navigate('MentorDetails');
-          }}
-          contentContainerStyle={styles.list}
-        />
+        {loading || error ? (
+          <ScreenState loading={loading} error={error} onRetry={reload} />
+        ) : (
+          <MentorList
+            items={filtered}
+            onSelect={(m: any) => {
+              d(selectMentor(m));
+              navigation.navigate('MentorDetails', {slug: m.slug});
+            }}
+            contentContainerStyle={styles.list}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={
+              query ? (
+                <EmptyState title="No matches" description={`No mentors found for "${query}".`} />
+              ) : null
+            }
+          />
+        )}
       </View>
     </View>
   );

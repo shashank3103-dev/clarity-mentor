@@ -1,16 +1,18 @@
 import React from 'react';
 import {ScrollView, Text, View, StyleSheet} from 'react-native';
 import CustomHeader from '../../components/common/CustomHeader';
+import {useSelector} from 'react-redux';
 import {useTheme} from '../../theme/useTheme';
+import EmptyState from '../../components/common/EmptyState';
+import {formatDateTime} from '../../utils/mentor';
 
-const reviews = [
-  ['Priya S.', 'I came in overwhelmed and left with a plan I could actually act on.'],
-  ['Rohan M.', 'Warm, candid advice that helped me name what mattered.'],
-  ['Tanvi K.', 'A generous listener with very practical insights.'],
-];
+const stars = (rating: any) =>
+  '★'.repeat(Math.round(Number(rating) || 0)).padEnd(5, '☆');
 
 export default function MentorReviewsScreen() {
   const {theme} = useTheme();
+  const mentor = useSelector((st: any) => st.mentors.selected);
+  const reviews: any[] = mentor?.reviews || [];
 
   return (
     <View style={{flex: 1, backgroundColor: theme.colors.background}}>
@@ -19,9 +21,12 @@ export default function MentorReviewsScreen() {
         <Text style={[styles.title, {color: theme.colors.text, fontFamily: theme.fonts.bold}]}>
           What mentees say
         </Text>
-        {reviews.map(([n, r]) => (
+        {!reviews.length ? (
+          <EmptyState title="No reviews yet" description="Reviews appear here after completed sessions." />
+        ) : null}
+        {reviews.map((r, idx) => (
           <View
-            key={n}
+            key={r.id || idx}
             style={[
               styles.card,
               {
@@ -29,12 +34,13 @@ export default function MentorReviewsScreen() {
                 borderColor: theme.colors.border,
               },
             ]}>
-            <Text style={[styles.stars, {color: theme.colors.star}]}>★★★★★</Text>
+            <Text style={[styles.stars, {color: theme.colors.star}]}>{stars(r.rating)}</Text>
             <Text style={[styles.copy, {color: theme.colors.text, fontFamily: theme.fonts.regular}]}>
-              "{r}"
+              "{r.review || r.comment || ''}"
             </Text>
             <Text style={[styles.name, {color: theme.colors.mutedText, fontFamily: theme.fonts.bold}]}>
-              {n}
+              {r.seeker_name || r.full_name || 'Seeker'}
+              {r.created_at ? ' · ' + formatDateTime(r.created_at) : ''}
             </Text>
           </View>
         ))}

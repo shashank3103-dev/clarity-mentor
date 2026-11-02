@@ -1,3 +1,5 @@
+import {useDispatch, useSelector} from 'react-redux';
+import {logout} from '../../redux/slices/authSlice';
 import React from 'react';
 import {View, Text, StyleSheet, ScrollView} from 'react-native';
 import Button from '../../components/common/Button';
@@ -5,6 +7,8 @@ import CustomHeader from '../../components/common/CustomHeader';
 import {useTheme} from '../../theme/useTheme';
 
 export default function BecomeMentorScreen({navigation}: any) {
+  const isAuthenticated = useSelector((st: any) => st.auth.isAuthenticated);
+  const dispatch = useDispatch<any>();
   const {theme} = useTheme();
 
   return (
@@ -25,7 +29,17 @@ export default function BecomeMentorScreen({navigation}: any) {
         </Text>
         <Button
           title="Apply to become a mentor"
-          onPress={() => {}}
+          onPress={async () => {
+            // Mentor accounts are separate on the backend, so sign out and register as a mentor.
+            // Reset on whichever ancestor navigator owns the auth screens (root stack).
+            let nav = navigation;
+            while (nav && !nav.getState()?.routeNames?.includes('Login')) nav = nav.getParent();
+            (nav || navigation).reset({
+              index: 1,
+              routes: [{name: 'Login'}, {name: 'Signup', params: {role: 'mentor'}}],
+            });
+            if (isAuthenticated) dispatch(logout());
+          }}
           style={styles.button}
         />
       </ScrollView>

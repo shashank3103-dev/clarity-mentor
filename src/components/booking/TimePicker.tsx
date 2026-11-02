@@ -2,47 +2,27 @@ import React, {useState} from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
 import {useTheme} from '../../theme/useTheme';
 import CheckIcon from '../common/CheckIcon';
-
-const ALL_SLOTS = [
-  {id: '1', time: '09:00 AM', period: 'Morning'},
-  {id: '2', time: '10:30 AM', period: 'Morning'},
-  {id: '3', time: '11:45 AM', period: 'Morning'},
-  {id: '4', time: '02:00 PM', period: 'Afternoon'},
-  {id: '5', time: '03:30 PM', period: 'Afternoon'},
-  {id: '6', time: '04:45 PM', period: 'Afternoon'},
-  {id: '7', time: '06:00 PM', period: 'Evening'},
-  {id: '8', time: '07:15 PM', period: 'Evening'},
-  {id: '9', time: '08:30 PM', period: 'Evening'},
-];
+import {DaySlot, to12h} from '../../utils/mentor';
 
 const PERIOD_TABS = ['All', 'Morning', 'Afternoon', 'Evening'] as const;
 
 export interface TimePickerProps {
-  selectedTime: string;
-  onSelectTime: (time: string) => void;
-  availableTimes?: string[];
+  slots: DaySlot[];
+  selectedId?: number | null;
+  onSelect: (slot: DaySlot) => void;
 }
 
-export default function TimePicker({
-  selectedTime,
-  onSelectTime,
-  availableTimes,
-}: TimePickerProps) {
+const periodOf = (start: string) => {
+  const h = parseInt(start, 10) || 0;
+  return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
+};
+
+export default function TimePicker({slots, selectedId, onSelect}: TimePickerProps) {
   const {theme} = useTheme();
   const [activeTab, setActiveTab] = useState<typeof PERIOD_TABS[number]>('All');
 
-  const slots = availableTimes && availableTimes.length > 0
-    ? availableTimes.map((t, idx) => ({
-        id: String(idx),
-        time: t,
-        period: t.includes('AM') ? 'Morning' : parseInt(t, 10) < 6 ? 'Afternoon' : 'Evening',
-      }))
-    : ALL_SLOTS;
-
   const filteredSlots =
-    activeTab === 'All'
-      ? slots
-      : slots.filter(s => s.period === activeTab);
+    activeTab === 'All' ? slots : slots.filter(s => periodOf(s.start) === activeTab);
 
   return (
     <View style={styles.container}>
@@ -81,16 +61,21 @@ export default function TimePicker({
         })}
       </View>
 
+      {!filteredSlots.length ? (
+        <Text style={{color: theme.colors.mutedText, fontFamily: theme.fonts.regular, fontSize: 13}}>
+          No {activeTab.toLowerCase()} slots on this day.
+        </Text>
+      ) : null}
       {/* Grid of Time Slots */}
       <View style={styles.grid}>
         {filteredSlots.map(slot => {
-          const isSelected = selectedTime === slot.time;
+          const isSelected = selectedId === slot.id;
           return (
             <Pressable
               key={slot.id}
-              onPress={() => onSelectTime(slot.time)}
+              onPress={() => onSelect(slot)}
               accessibilityRole="button"
-              accessibilityLabel={`Select time slot ${slot.time}`}
+              accessibilityLabel={`Select time slot ${slot.label}`}
               style={[
                 styles.slotCard,
                 {
@@ -114,7 +99,16 @@ export default function TimePicker({
                       : theme.fonts.medium,
                   },
                 ]}>
-                {slot.time}
+                {to12h(slot.start)}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 10.5,
+                  marginTop: 2,
+                  color: isSelected ? theme.colors.onPrimary : theme.colors.mutedText,
+                  fontFamily: theme.fonts.regular,
+                }}>
+                to {to12h(slot.end)}
               </Text>
               {isSelected ? (
                 <View style={styles.checkMark}>
@@ -156,7 +150,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    justifyContent: 'space-between',
   },
   slotCard: {
     width: '31%',

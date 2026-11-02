@@ -4,7 +4,8 @@ import {useSelector} from 'react-redux';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Button from '../../components/common/Button';
 import {useTheme} from '../../theme/useTheme';
-import { colors } from '../../theme';
+import {colors} from '../../theme';
+import {formatLongDate, slotDurationMinutes} from '../../utils/mentor';
 
 export default function BookingSuccessScreen({navigation}: any) {
   const {theme} = useTheme();
@@ -106,7 +107,7 @@ export default function BookingSuccessScreen({navigation}: any) {
                 styles.rowValue,
                 {color: theme.colors.text, fontFamily: theme.fonts.semiBold},
               ]}>
-              {booking.date}
+              {booking.date ? formatLongDate(booking.date) : ''}
             </Text>
           </View>
         </View>
@@ -141,7 +142,7 @@ export default function BookingSuccessScreen({navigation}: any) {
                 styles.rowValue,
                 {color: theme.colors.text, fontFamily: theme.fonts.semiBold},
               ]}>
-              {booking.time}
+              {booking.slot?.label}
             </Text>
           </View>
         </View>
@@ -176,7 +177,7 @@ export default function BookingSuccessScreen({navigation}: any) {
                 styles.rowValue,
                 {color: theme.colors.text, fontFamily: theme.fonts.semiBold},
               ]}>
-              30 minutes
+              {slotDurationMinutes(booking.slot)} minutes
             </Text>
           </View>
         </View>

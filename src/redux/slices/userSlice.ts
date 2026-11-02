@@ -1,1 +1,0 @@
-import {createSlice} from '@reduxjs/toolkit'; const slice=createSlice({name:'user',initialState:{profile:{name:'Bhanu Pratap',role:'Software Developer',email:'bhanu@example.com'}},reducers:{updateProfile:(s,a)=>{s.profile={...s.profile,...a.payload}}}}); export const {updateProfile}=slice.actions; export default slice.reducer;

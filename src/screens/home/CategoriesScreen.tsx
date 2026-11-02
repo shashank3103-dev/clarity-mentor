@@ -34,7 +34,9 @@ export default function CategoriesScreen({navigation}: any) {
             <CategoryCard
               key={x.id}
               item={x}
-              onPress={() => navigation.navigate('MentorList', {category: x.label})}
+              onPress={() =>
+                navigation.navigate('MentorList', {category: x.label, keywords: x.keywords})
+              }
             />
           ))}
         </View>

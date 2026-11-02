@@ -21,7 +21,7 @@ function MentorCard({mentor, onPress, compact = false}: any) {
         compact && styles.compact,
       ]}>
       <View style={styles.top}>
-        <Avatar label={mentor.image} />
+        <Avatar label={mentor.image} uri={mentor.imageUrl} />
         <View style={styles.info}>
           <Text
             numberOfLines={1}
@@ -37,18 +37,23 @@ function MentorCard({mentor, onPress, compact = false}: any) {
               styles.role,
               {color: theme.colors.mutedText, fontFamily: theme.fonts.regular},
             ]}>
-            {mentor.role} · {mentor.company}
+            {mentor.company ? `${mentor.role} · ${mentor.company}` : mentor.role}
           </Text>
         </View>
       </View>
 
-      <Text
-        style={[
-          styles.exp,
-          {color: theme.colors.mutedText, fontFamily: theme.fonts.medium},
-        ]}>
-        {mentor.experience} experience
-      </Text>
+      {mentor.bio ? (
+        <Text
+          numberOfLines={2}
+          style={[
+            styles.exp,
+            {color: theme.colors.mutedText, fontFamily: theme.fonts.medium},
+          ]}>
+          {mentor.bio}
+        </Text>
+      ) : (
+        <View style={{height: 12}} />
+      )}
 
       <MentorRating rating={mentor.rating} sessions={mentor.sessions} />
 

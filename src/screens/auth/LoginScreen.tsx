@@ -1,27 +1,41 @@
 import React, { useState } from 'react';
 import { ScrollView, Text, View, StyleSheet, Pressable, StatusBar } from 'react-native';
-import { useDispatch } from 'react-redux';
-import { loginSuccess } from '../../redux/slices/authSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { clearAuthError, login } from '../../redux/slices/authSlice';
+import { homeRouteFor } from '../../navigation/routes';
+import { isEmail } from '../../utils/validation';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
-import AssetIcon from '../../components/common/AssetIcon';
 import Logo from '../../components/common/Logo';
 import { useTheme } from '../../theme/useTheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function LoginScreen({ navigation }: any) {
+export default function LoginScreen({ navigation, route }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const d = useDispatch();
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const d = useDispatch<any>();
+  const { loading, error } = useSelector((s: any) => s.auth);
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const redirect = route?.params?.redirect;
 
-  const handleLogin = () => {
-    d(loginSuccess(undefined));
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Main', params: { screen: 'Tabs', params: { screen: 'Home' } } }],
-    });
+  const handleLogin = async () => {
+    const next: typeof errors = {};
+    if (!isEmail(email.trim())) next.email = 'Invalid email address';
+    if (password.length < 6) next.password = 'Password must be at least 6 characters';
+    setErrors(next);
+    if (Object.keys(next).length) return;
+
+    const result = await d(login({ email: email.trim(), password }));
+    if (login.fulfilled.match(result)) {
+      // Came here from a gated action (e.g. booking) -> go back to it.
+      if (redirect && navigation.canGoBack()) {
+        navigation.goBack();
+        return;
+      }
+      navigation.reset({ index: 0, routes: [homeRouteFor(result.payload.userType)] });
+    }
   };
 
   return (
@@ -46,7 +60,11 @@ export default function LoginScreen({ navigation }: any) {
         <Input
           label="Email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(v: string) => {
+            setEmail(v);
+            if (error) d(clearAuthError());
+          }}
+          error={errors.email}
           keyboardType="email-address"
           autoCapitalize="none"
           placeholder="you@example.com"
@@ -55,7 +73,11 @@ export default function LoginScreen({ navigation }: any) {
         <Input
           label="Password"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(v: string) => {
+            setPassword(v);
+            if (error) d(clearAuthError());
+          }}
+          error={errors.password}
           secureTextEntry
           placeholder="••••••••"
         />
@@ -65,15 +87,11 @@ export default function LoginScreen({ navigation }: any) {
         <Text style={[styles.forgot, { color: theme.colors.primary, fontFamily: theme.fonts.bold }]}>Forgot password?</Text>
       </Pressable>
 
-      <Button title="Sign in" onPress={handleLogin} style={styles.button} />
+      {error ? (
+        <Text style={[styles.error, { color: theme.colors.error, fontFamily: theme.fonts.medium }]}>{error}</Text>
+      ) : null}
 
-      <Button
-        title="Continue with Google"
-        variant="outline"
-        leftIcon={<AssetIcon name="google" size={20} accessibilityLabel="Google" />}
-        onPress={handleLogin}
-        style={styles.google}
-      />
+      <Button title="Sign in" onPress={handleLogin} loading={loading} style={styles.button} />
 
       <Text style={[styles.bottom, { color: theme.colors.textSecondary, fontFamily: theme.fonts.regular }]}>
         New to Clarity?{' '}
@@ -98,4 +116,5 @@ const styles = StyleSheet.create({
   google: { marginTop: 14, height: 52 },
   bottom: { textAlign: 'center', fontSize: 15, marginTop: 28 },
   link: {},
+  error: { fontSize: 13, textAlign: 'center', marginTop: 4 },
 });

@@ -23,7 +23,7 @@ export default function MentorRating({
             fontFamily: theme.fonts.bold,
           },
         ]}>
-        {rating}
+        {rating ? Number(rating).toFixed(1) : 'New'}
       </Text>
       <Text
         style={[
@@ -33,7 +33,7 @@ export default function MentorRating({
             fontFamily: theme.fonts.medium,
           },
         ]}>
-        {' '}· {sessions}+ sessions
+        {' '}· {sessions} review{sessions === 1 ? '' : 's'}
       </Text>
     </View>
   );

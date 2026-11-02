@@ -38,7 +38,7 @@ const images = [
 
 export default function OnboardingScreen({navigation}: any) {
   const [i, setI] = useState(0);
-  const d = useDispatch();
+  const d = useDispatch<any>();
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -137,7 +137,7 @@ export default function OnboardingScreen({navigation}: any) {
           variant="soft"
           height={46}
           style={styles.login}
-          onPress={() => navigation.replace('Login')}
+          onPress={handleFinish}
         />
       </View>
     </View>

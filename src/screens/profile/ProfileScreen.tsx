@@ -4,24 +4,60 @@ import {useDispatch, useSelector} from 'react-redux';
 import Avatar from '../../components/common/Avatar';
 import AssetIcon from '../../components/common/AssetIcon';
 import CustomHeader from '../../components/common/CustomHeader';
-import {logout} from '../../redux/slices/authSlice';
+import {logout, refreshUser} from '../../redux/slices/authSlice';
 import {useTheme} from '../../theme';
+import useAsync from '../../hooks/useAsync';
+import {seekerService} from '../../services/seekerService';
+import {mentorService} from '../../services/mentorService';
+import {imageUrl} from '../../utils/mentor';
+import {initials} from '../../utils/helpers';
 
-const links = [
+const seekerLinks = [
   ['My Sessions', 'Sessions'],
-  ['Saved Mentors', 'MentorList'],
-  ['Notifications', 'Notifications'],
-  ['Payment Methods', 'Settings'],
+  ['Messages', 'Messages'],
+  ['Payment History', 'PaymentHistory'],
+  ['Become a Mentor', 'BecomeMentor'],
   ['Settings', 'Settings'],
   ['Help & Support', 'HelpSupport'],
-  ['Privacy', 'Settings'],
+];
+
+const mentorLinks = [
+  ['My Sessions', 'Sessions'],
+  ['Availability', 'Availability'],
+  ['Payment History', 'PaymentHistory'],
+  ['Wallet & Payouts', 'Wallet'],
+  ['Settings', 'Settings'],
+  ['Help & Support', 'HelpSupport'],
 ];
 const socials = ['facebook', 'x', 'instagram', 'ln'] as const;
 
 export default function ProfileScreen({navigation}: any) {
-  const p = useSelector((s: any) => s.user.profile);
-  const d = useDispatch();
+  const {user: p, userType} = useSelector((s: any) => s.auth);
+  const d = useDispatch<any>();
   const {theme} = useTheme();
+  const isMentor = userType === 'mentor';
+  const links = isMentor ? mentorLinks : seekerLinks;
+
+  const {data: dash} = useAsync(async () => {
+    d(refreshUser());
+    const res = isMentor ? await mentorService.getDashboard() : await seekerService.getDashboard();
+    return res?.data;
+  }, [isMentor]);
+
+  const stats = isMentor
+    ? [
+        ['Earnings', `₹${dash?.financials?.total_earnings || '0.00'}`],
+        ['Sessions', dash?.sessions?.total ?? 0],
+        ['Rating', dash?.quality?.average_rating || '—'],
+      ]
+    : [
+        ['Spent', `₹${dash?.financials?.total_spent || '0.00'}`],
+        ['Booked', dash?.sessions?.total_booked ?? 0],
+        ['Hours', parseFloat(dash?.sessions?.total_learning_hours || '0').toFixed(1)],
+      ];
+
+  // RootNavigator's session guard sends us to Login once auth clears.
+  const handleLogout = () => d(logout());
 
   return (
     <View style={[styles.screen, {backgroundColor: theme.colors.background}]}>
@@ -34,21 +70,37 @@ export default function ProfileScreen({navigation}: any) {
         contentContainerStyle={[styles.wrap, {paddingHorizontal: 20}]}
         showsVerticalScrollIndicator={false}>
         <View style={styles.profile}>
-          <Avatar label="BP" size={76} />
+          <Avatar
+            label={initials(p?.full_name || 'CM')}
+            uri={imageUrl(p?.profile_image)}
+            size={76}
+          />
           <Text
             style={[
               styles.name,
               {color: theme.colors.text, fontFamily: theme.fonts.bold},
             ]}>
-            {p.name}
+            {p?.full_name || 'Your profile'}
           </Text>
           <Text
             style={[
               styles.role,
               {color: theme.colors.mutedText, fontFamily: theme.fonts.regular},
             ]}>
-            {p.role}
+            {p?.expertise_area || p?.email}
           </Text>
+          {isMentor && p?.status ? (
+            <Text
+              style={{
+                marginTop: 6,
+                fontSize: 11,
+                color: p.status === 'approved' ? theme.colors.success : theme.colors.warning,
+                fontFamily: theme.fonts.bold,
+              }}>
+              {String(p.status).toUpperCase()}
+            </Text>
+          ) : null}
+          {isMentor ? (
           <Pressable
             onPress={() => navigation.navigate('EditProfile')}
             style={[styles.edit, {backgroundColor: theme.colors.secondary}]}>
@@ -60,6 +112,24 @@ export default function ProfileScreen({navigation}: any) {
               Edit profile
             </Text>
           </Pressable>
+          ) : null}
+        </View>
+
+        <View
+          style={[
+            styles.stats,
+            {backgroundColor: theme.colors.surface, borderColor: theme.colors.border},
+          ]}>
+          {stats.map(([label, value]) => (
+            <View key={label as string} style={styles.stat}>
+              <Text style={{fontSize: 16, color: theme.colors.text, fontFamily: theme.fonts.bold}}>
+                {value}
+              </Text>
+              <Text style={{fontSize: 11, color: theme.colors.mutedText, fontFamily: theme.fonts.medium, marginTop: 2}}>
+                {label}
+              </Text>
+            </View>
+          ))}
         </View>
 
         <View
@@ -91,7 +161,7 @@ export default function ProfileScreen({navigation}: any) {
             </Pressable>
           ))}
           <Pressable
-            onPress={() => d(logout())}
+            onPress={handleLogout}
             style={[styles.row, {borderBottomWidth: 0}]}>
             <Text
               style={[
@@ -149,6 +219,14 @@ export default function ProfileScreen({navigation}: any) {
 }
 
 const styles = StyleSheet.create({
+  stats: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingVertical: 14,
+    marginBottom: 16,
+  },
+  stat: {flex: 1, alignItems: 'center'},
   screen: {
     flex: 1,
   },

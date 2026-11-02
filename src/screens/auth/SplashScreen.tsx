@@ -1,25 +1,34 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, StatusBar } from 'react-native';
-import { useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
+import { bootstrapAuth } from '../../redux/slices/authSlice';
+import { homeRouteFor } from '../../navigation/routes';
 import { useTheme } from '../../theme/useTheme';
 import Logo from '../../components/common/Logo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SplashScreen({ navigation }: any) {
   const { theme } = useTheme();
-  const { isAuthenticated, onboarded } = useSelector((s: any) => s.auth);
+  const dispatch = useDispatch<any>();
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    const t = setTimeout(
-      () =>
-        navigation.replace(
-          isAuthenticated ? 'Main' : onboarded ? 'Login' : 'Onboarding',
-        ),
-      900,
-    );
-    return () => clearTimeout(t);
-  }, [isAuthenticated, onboarded, navigation]);
+    let cancelled = false;
+    const minDelay = new Promise(resolve => setTimeout(resolve, 900));
+    Promise.all([dispatch(bootstrapAuth()).unwrap(), minDelay])
+      .then(([session]: any) => {
+        if (cancelled) return;
+        if (session?.token) {
+          navigation.reset({ index: 0, routes: [homeRouteFor(session.userType)] });
+        } else {
+          navigation.replace(session?.onboarded ? 'Login' : 'Onboarding');
+        }
+      })
+      .catch(() => !cancelled && navigation.replace('Login'));
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch, navigation]);
 
   return (
     <View style={[styles.wrap, { backgroundColor: theme.colors.primary, paddingTop: insets.top }]}>

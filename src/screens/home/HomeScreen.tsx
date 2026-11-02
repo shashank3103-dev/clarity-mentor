@@ -1,4 +1,4 @@
-import React, {useCallback} from 'react';
+import React, {useCallback, useEffect} from 'react';
 import {
   FlatList,
   Image,
@@ -11,7 +11,11 @@ import {
 } from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import {categories} from '../../constants/categories';
-import {selectMentor} from '../../redux/slices/mentorSlice';
+import {
+  fetchCategories,
+  fetchFeaturedMentors,
+  selectMentor,
+} from '../../redux/slices/mentorSlice';
 import {useTheme} from '../../theme/useTheme';
 import Button from '../../components/common/Button';
 import CustomCard from '../../components/common/CustomCard';
@@ -31,8 +35,13 @@ const prompts = [
 
 export default function HomeScreen({navigation}: any) {
   const {theme} = useTheme();
-  const mentors = useSelector((state: any) => state.mentors.items);
-  const dispatch = useDispatch();
+  const mentors = useSelector((state: any) => state.mentors.featured);
+  const dispatch = useDispatch<any>();
+
+  useEffect(() => {
+    dispatch(fetchFeaturedMentors());
+    dispatch(fetchCategories());
+  }, [dispatch]);
 
   const openMentor = useCallback(
     (mentor: any) => {
@@ -55,7 +64,7 @@ export default function HomeScreen({navigation}: any) {
         },
       ]}>
       <View style={styles.mentorTop}>
-        <Avatar label={item.image} size={42} />
+        <Avatar label={item.image} uri={item.imageUrl} size={42} />
         <View style={styles.mentorTitle}>
           <Text
             numberOfLines={1}
@@ -71,7 +80,7 @@ export default function HomeScreen({navigation}: any) {
               styles.mentorRole,
               {color: theme.colors.mutedText, fontFamily: theme.fonts.regular},
             ]}>
-            {item.role} · {item.company}
+            {item.company ? `${item.role} · ${item.company}` : item.role}
           </Text>
         </View>
       </View>
@@ -91,7 +100,7 @@ export default function HomeScreen({navigation}: any) {
               styles.rating,
               {color: theme.colors.star, fontFamily: theme.fonts.bold},
             ]}>
-            {item.rating}
+            {item.rating ? item.rating.toFixed(1) : 'New'}
           </Text>
         </View>
         <Text
@@ -308,7 +317,10 @@ export default function HomeScreen({navigation}: any) {
               key={category.id}
               item={category}
               onPress={() =>
-                navigation.navigate('MentorList', {category: category.label})
+                navigation.navigate('MentorList', {
+                  category: category.label,
+                  keywords: category.keywords,
+                })
               }
             />
           ))}

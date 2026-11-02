@@ -5,6 +5,7 @@ import {
   DrawerContentScrollView,
 } from '@react-navigation/drawer';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useDispatch, useSelector} from 'react-redux';
 import BottomTabs from './BottomTabNavigator';
 import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 import BecomeMentorScreen from '../screens/misc/BecomeMentorScreen';
@@ -13,15 +14,32 @@ import HelpSupportScreen from '../screens/misc/HelpSupportScreen';
 import Avatar from '../components/common/Avatar';
 import Logo from '../components/common/Logo';
 import {useTheme} from '../theme/useTheme';
+import {logout} from '../redux/slices/authSlice';
+import {imageUrl} from '../utils/mentor';
+import {initials} from '../utils/helpers';
 
 const Drawer = createDrawerNavigator();
 
-const items = [
+const TAB_ROUTES = ['Home', 'Explore', 'Sessions', 'Messages', 'Profile', 'Dashboard'];
+
+const seekerItems = [
   ['Home', 'Home'],
   ['Find a mentor', 'Explore'],
   ['My sessions', 'Sessions'],
-  ['Notifications', 'Notifications'],
+  ['Messages', 'Messages'],
+  ['Payment history', 'PaymentHistory'],
   ['Become a mentor', 'BecomeMentor'],
+  ['Settings', 'Settings'],
+  ['Help & support', 'HelpSupport'],
+];
+
+const mentorItems = [
+  ['Dashboard', 'Dashboard'],
+  ['My sessions', 'Sessions'],
+  ['Messages', 'Messages'],
+  ['Availability', 'Availability'],
+  ['Payment history', 'PaymentHistory'],
+  ['Wallet & payouts', 'Wallet'],
   ['Settings', 'Settings'],
   ['Help & support', 'HelpSupport'],
 ];
@@ -29,11 +47,20 @@ const items = [
 function Content(props: any) {
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
+  const dispatch = useDispatch<any>();
+  const {user, userType} = useSelector((s: any) => s.auth);
+  const items = userType === 'mentor' ? mentorItems : seekerItems;
 
   const go = (route: string) =>
-    ['Home', 'Explore', 'Sessions'].includes(route)
+    TAB_ROUTES.includes(route)
       ? props.navigation.navigate('Tabs', {screen: route})
       : props.navigation.navigate(route);
+
+  // RootNavigator's session guard sends us to Login once auth clears.
+  const handleLogout = () => {
+    props.navigation.closeDrawer();
+    dispatch(logout());
+  };
 
   return (
     <DrawerContentScrollView
@@ -52,14 +79,18 @@ function Content(props: any) {
           <Logo width={110} height={48} />
         </View>
         <View style={styles.profile}>
-          <Avatar label="BP" size={44} />
+          <Avatar
+            label={initials(user?.full_name || 'CM')}
+            uri={imageUrl(user?.profile_image)}
+            size={44}
+          />
           <View style={styles.profileText}>
             <Text
               style={[
                 styles.name,
                 {color: theme.colors.text, fontFamily: theme.fonts.bold},
               ]}>
-              Bhanu Pratap
+              {user?.full_name || 'Welcome'}
             </Text>
             <Text
               style={[
@@ -69,7 +100,7 @@ function Content(props: any) {
                   fontFamily: theme.fonts.regular,
                 },
               ]}>
-              Software Developer
+              {user?.expertise_area || user?.email || (userType === 'mentor' ? 'Mentor' : 'Seeker')}
             </Text>
           </View>
         </View>
@@ -83,7 +114,7 @@ function Content(props: any) {
         ]}>
         EXPLORE
       </Text>
-      {items.slice(0, 4).map(([label, route]) => (
+      {items.slice(0, 5).map(([label, route]) => (
         <Pressable
           key={route}
           onPress={() => go(route)}
@@ -118,7 +149,7 @@ function Content(props: any) {
         ]}>
         MORE
       </Text>
-      {items.slice(4).map(([label, route]) => (
+      {items.slice(5).map(([label, route]) => (
         <Pressable
           key={route}
           onPress={() => go(route)}
@@ -144,7 +175,7 @@ function Content(props: any) {
 
       {/* Logout */}
       <Pressable
-        onPress={() => props.navigation.getParent()?.navigate('Login')}
+        onPress={handleLogout}
         accessibilityRole="button"
         style={[styles.logout, {backgroundColor: theme.colors.surfaceMuted}]}>
         <Text

@@ -3,13 +3,13 @@ import {View, Text, StyleSheet} from 'react-native';
 import {useTheme} from '../../theme/useTheme';
 import Avatar from '../common/Avatar';
 
-export default function BookingCard({mentor, date, time}: any) {
+export default function BookingCard({mentor, date, time, duration, price}: any) {
   const {theme} = useTheme();
   const rows = [
     ['Date', date],
     ['Time', time],
-    ['Duration', '30 minutes'],
-    ['Price', `₹${mentor.price}`],
+    ['Duration', `${duration || 30} minutes`],
+    ['Price', `₹${price ?? mentor.price}`],
   ];
 
   return (
@@ -22,7 +22,7 @@ export default function BookingCard({mentor, date, time}: any) {
         },
       ]}>
       <View style={styles.top}>
-        <Avatar label={mentor.image} />
+        <Avatar label={mentor.image} uri={mentor.imageUrl} />
         <View style={styles.headerInfo}>
           <Text style={[styles.name, {color: theme.colors.text, fontFamily: theme.fonts.bold}]}>
             {mentor.name}

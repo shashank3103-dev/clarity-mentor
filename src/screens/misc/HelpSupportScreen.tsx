@@ -1,5 +1,11 @@
-import React from 'react';
-import {ScrollView, Text, View, StyleSheet} from 'react-native';
+import React, {useState} from 'react';
+import {ScrollView, Text, View, StyleSheet, Alert} from 'react-native';
+import {useSelector} from 'react-redux';
+import Input from '../../components/common/Input';
+import Button from '../../components/common/Button';
+import {commonService} from '../../services/seekerService';
+import {getErrorMessage} from '../../services/api';
+import {isEmail} from '../../utils/validation';
 import CustomHeader from '../../components/common/CustomHeader';
 import {useTheme} from '../../theme/useTheme';
 import AssetIcon from '../../components/common/AssetIcon';
@@ -7,11 +13,42 @@ import AssetIcon from '../../components/common/AssetIcon';
 const topics = [
   {title: 'Booking a session', body: 'Choose a mentor, time, and confirm in just a few taps.', icon: 'mail2' as const},
   {title: 'Your privacy', body: 'Sessions are private and your information stays yours.', icon: 'mail' as const},
-  {title: 'Contact support', body: 'support@claritymentor.app', icon: 'phone' as const},
+  {title: 'Contact support', body: 'Send us a message below and our team will get back to you.', icon: 'phone' as const},
 ];
 
 export default function HelpSupportScreen({navigation}: any) {
   const {theme} = useTheme();
+  const user = useSelector((st: any) => st.auth.user);
+  const [form, setForm] = useState({
+    name: user?.full_name || '',
+    email: user?.email || '',
+    phone: '',
+    message: '',
+  });
+  const [sending, setSending] = useState(false);
+
+  // Same endpoint as the web contact-us page.
+  const send = async () => {
+    if (!form.name.trim() || !isEmail(form.email.trim()) || form.message.trim().length < 5) {
+      Alert.alert('Check the form', 'Please enter your name, a valid email and a message.');
+      return;
+    }
+    setSending(true);
+    try {
+      await commonService.contactUs({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        message: form.message.trim(),
+      });
+      setForm({...form, message: ''});
+      Alert.alert('Message sent', 'We will contact you soon.');
+    } catch (e) {
+      Alert.alert('Failed to send', getErrorMessage(e, 'Failed to send message. Please try again.'));
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <View style={[styles.container, {backgroundColor: theme.colors.background}]}>
@@ -19,7 +56,7 @@ export default function HelpSupportScreen({navigation}: any) {
         title="Help & Support"
         onBack={() => navigation?.goBack?.()}
       />
-      <ScrollView contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.wrap} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={[styles.title, {color: theme.colors.text, fontFamily: theme.fonts.bold}]}>
           How can we help?
         </Text>
@@ -49,6 +86,32 @@ export default function HelpSupportScreen({navigation}: any) {
             </View>
           </View>
         ))}
+
+        <Text style={[styles.title, {color: theme.colors.text, fontFamily: theme.fonts.bold, fontSize: 20, marginTop: 16}]}>
+          Contact us
+        </Text>
+        <Input label="Name" value={form.name} onChangeText={(v: string) => setForm({...form, name: v})} />
+        <Input
+          label="Email"
+          value={form.email}
+          onChangeText={(v: string) => setForm({...form, email: v})}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        <Input
+          label="Phone"
+          value={form.phone}
+          onChangeText={(v: string) => setForm({...form, phone: v.replace(/[^0-9+]/g, '')})}
+          keyboardType="phone-pad"
+        />
+        <Input
+          label="Message"
+          value={form.message}
+          onChangeText={(v: string) => setForm({...form, message: v})}
+          multiline
+          placeholder="How can we help?"
+        />
+        <Button title="Send message" onPress={send} loading={sending} />
       </ScrollView>
     </View>
   );

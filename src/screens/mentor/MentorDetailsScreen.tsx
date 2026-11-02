@@ -1,5 +1,5 @@
-import React from 'react';
-import {ScrollView, View, Text, StyleSheet, Pressable} from 'react-native';
+import React, {useEffect, useMemo, useState} from 'react';
+import {ScrollView, View, Text, StyleSheet, Pressable, Alert, ActivityIndicator} from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Avatar from '../../components/common/Avatar';
@@ -9,19 +9,82 @@ import Button from '../../components/common/Button';
 import {startBooking} from '../../redux/slices/bookingSlice';
 import {useTheme} from '../../theme/useTheme';
 import CustomHeader from '../../components/common/CustomHeader';
+import {fetchMentorDetail} from '../../redux/slices/mentorSlice';
+import {mentorService} from '../../services/mentorService';
+import {chatService} from '../../services/chatService';
+import {getErrorMessage} from '../../services/api';
+import {buildAvailableDays, formatDateTime} from '../../utils/mentor';
+import useAsync from '../../hooks/useAsync';
 
-export default function MentorDetailsScreen({navigation}: any) {
-  const m =
-    useSelector((s: any) => s.mentors.selected) ||
-    useSelector((s: any) => s.mentors.items[0]);
-  const d = useDispatch();
+export default function MentorDetailsScreen({navigation, route}: any) {
+  const m = useSelector((s: any) => s.mentors.selected);
+  const detailLoading = useSelector((s: any) => s.mentors.detailLoading);
+  const {isAuthenticated, userType} = useSelector((s: any) => s.auth);
+  const d = useDispatch<any>();
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
+  const slug = route?.params?.slug || m?.slug;
+  const [starting, setStarting] = useState<'book' | 'chat' | null>(null);
 
-  const book = () => {
-    d(startBooking(m));
-    navigation.navigate('SelectDate');
+  useEffect(() => {
+    if (slug) d(fetchMentorDetail(slug));
+  }, [d, slug]);
+
+  const {data: availability} = useAsync(
+    async () => (await mentorService.getAvailability(slug))?.data,
+    [slug],
+    !!slug,
+  );
+  const days = useMemo(() => buildAvailableDays(availability), [availability]);
+  const nextSlots = days[0]?.slots.map(x => x.label) || [];
+  const firstReview = m?.reviews?.[0];
+
+  // Web flow: booking & chat both hang off a seeker<->mentor conversation.
+  const openConversation = async (intent: 'book' | 'chat') => {
+    if (!isAuthenticated) {
+      Alert.alert('Sign in required', 'Please sign in as a seeker to continue.', [
+        {text: 'Cancel', style: 'cancel'},
+        {text: 'Sign in', onPress: () => navigation.navigate('Login', {redirect: true})},
+      ]);
+      return;
+    }
+    if (userType === 'mentor') {
+      Alert.alert('Not available', 'Mentor accounts cannot book sessions. Sign in as a seeker.');
+      return;
+    }
+    setStarting(intent);
+    try {
+      const res = await chatService.startConversation(m.slug);
+      const conversationId = res?.data?.id ? String(res.data.id) : null;
+      if (intent === 'book') {
+        d(startBooking({mentor: m, conversationId}));
+        navigation.navigate('SelectDate');
+      } else if (conversationId) {
+        navigation.navigate('Chat', {
+          conversationId,
+          name: m.name,
+          image: m.imageUrl,
+          mentor: m,
+        });
+      } else {
+        Alert.alert('Could not start chat', res?.message || 'Please try again.');
+      }
+    } catch (e) {
+      Alert.alert('Something went wrong', getErrorMessage(e));
+    } finally {
+      setStarting(null);
+    }
   };
+  const book = () => openConversation('book');
+
+  if (!m) {
+    return (
+      <View style={[styles.page, {backgroundColor: theme.colors.background}]}>
+        <CustomHeader title="Mentor Profile" onBack={() => navigation.goBack()} />
+        <ActivityIndicator color={theme.colors.secondary} style={{marginTop: 60}} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.page, {backgroundColor: theme.colors.background}]}>
@@ -52,7 +115,7 @@ export default function MentorDetailsScreen({navigation}: any) {
                 backgroundColor: theme.colors.surface,
               },
             ]}>
-            <Avatar label={m.image} size={100} />
+            <Avatar label={m.image} uri={m.imageUrl} size={100} />
           </View>
         </View>
 
@@ -75,7 +138,7 @@ export default function MentorDetailsScreen({navigation}: any) {
                   fontFamily: theme.fonts.medium,
                 },
               ]}>
-              {m.role} · {m.company}
+              {m.company ? `${m.role} · ${m.company}` : m.role}
             </Text>
 
             <View style={styles.ratingRow}>
@@ -108,7 +171,7 @@ export default function MentorDetailsScreen({navigation}: any) {
                   styles.metricValue,
                   {color: theme.colors.text, fontFamily: theme.fonts.bold},
                 ]}>
-                {m.experience}
+                {m.experience || '—'}
               </Text>
             </View>
 
@@ -144,7 +207,7 @@ export default function MentorDetailsScreen({navigation}: any) {
                       fontFamily: theme.fonts.regular,
                     },
                   ]}>
-                  {' '}/30m
+                  {' '}/session
                 </Text>
               </Text>
             </View>
@@ -165,14 +228,14 @@ export default function MentorDetailsScreen({navigation}: any) {
                     fontFamily: theme.fonts.regular,
                   },
                 ]}>
-                Sessions
+                Reviews
               </Text>
               <Text
                 style={[
                   styles.metricValue,
                   {color: theme.colors.text, fontFamily: theme.fonts.bold},
                 ]}>
-                {m.sessions}+
+                {m.sessions}
               </Text>
             </View>
           </View>
@@ -181,8 +244,19 @@ export default function MentorDetailsScreen({navigation}: any) {
           <Button
             title="Book a session"
             onPress={book}
+            loading={starting === 'book'}
             style={styles.bookBtn}
           />
+          <Button
+            title="Message mentor"
+            variant="outline"
+            onPress={() => openConversation('chat')}
+            loading={starting === 'chat'}
+            style={{marginTop: 10, height: 46}}
+          />
+          {detailLoading ? (
+            <ActivityIndicator color={theme.colors.secondary} style={{marginTop: 12}} />
+          ) : null}
 
           {/* About Section */}
           <View style={styles.section}>
@@ -201,8 +275,21 @@ export default function MentorDetailsScreen({navigation}: any) {
                   fontFamily: theme.fonts.regular,
                 },
               ]}>
-              {m.bio}
+              {m.bio || 'This mentor has not added a bio yet.'}
             </Text>
+            {m.aboutMe ? (
+              <Text
+                style={[
+                  styles.copy,
+                  {
+                    color: theme.colors.mutedText,
+                    fontFamily: theme.fonts.regular,
+                    marginTop: 10,
+                  },
+                ]}>
+                {m.aboutMe.trim()}
+              </Text>
+            ) : null}
           </View>
 
           {/* Expertise Section */}
@@ -241,51 +328,60 @@ export default function MentorDetailsScreen({navigation}: any) {
           </View>
 
           {/* Experience Section */}
-          <View style={styles.section}>
-            <Text
-              style={[
-                styles.sectionHead,
-                {color: theme.colors.text, fontFamily: theme.fonts.bold},
-              ]}>
-              Current Role
-            </Text>
-            <View
-              style={[
-                styles.experienceCard,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                },
-              ]}>
-              <View
+          {m.experiences?.length ? (
+            <View style={styles.section}>
+              <Text
                 style={[
-                  styles.expIndicator,
-                  {backgroundColor: theme.colors.secondary},
-                ]}
-              />
-              <View style={styles.expInfo}>
-                <Text
+                  styles.sectionHead,
+                  {color: theme.colors.text, fontFamily: theme.fonts.bold},
+                ]}>
+                Experience
+              </Text>
+              {m.experiences.map((exp: any, idx: number) => (
+                <View
+                  key={exp.id || idx}
                   style={[
-                    styles.expRole,
-                    {color: theme.colors.text, fontFamily: theme.fonts.bold},
-                  ]}>
-                  {m.role}
-                </Text>
-                <Text
-                  style={[
-                    styles.expMeta,
+                    styles.experienceCard,
                     {
-                      color: theme.colors.mutedText,
-                      fontFamily: theme.fonts.regular,
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                      marginBottom: 8,
                     },
                   ]}>
-                  {m.company} · {m.experience} experience
-                </Text>
-              </View>
+                  <View
+                    style={[
+                      styles.expIndicator,
+                      {backgroundColor: theme.colors.secondary},
+                    ]}
+                  />
+                  <View style={styles.expInfo}>
+                    <Text
+                      style={[
+                        styles.expRole,
+                        {color: theme.colors.text, fontFamily: theme.fonts.bold},
+                      ]}>
+                      {exp.title || exp.designation || exp.role || 'Role'}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.expMeta,
+                        {
+                          color: theme.colors.mutedText,
+                          fontFamily: theme.fonts.regular,
+                        },
+                      ]}>
+                      {[exp.company || exp.company_name, exp.location]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </Text>
+                  </View>
+                </View>
+              ))}
             </View>
-          </View>
+          ) : null}
 
           {/* Languages Section */}
+          {m.languages?.length ? (
           <View style={styles.section}>
             <Text
               style={[
@@ -320,6 +416,8 @@ export default function MentorDetailsScreen({navigation}: any) {
             </View>
           </View>
 
+          ) : null}
+
           {/* Reviews Section */}
           <View style={styles.section}>
             <View style={styles.reviewHeader}>
@@ -352,7 +450,9 @@ export default function MentorDetailsScreen({navigation}: any) {
                 },
               ]}>
               <Text style={[styles.stars, {color: theme.colors.star}]}>
-                ★★★★★
+                {firstReview
+                  ? '★'.repeat(Math.round(Number(firstReview.rating) || 0)).padEnd(5, '☆')
+                  : '☆☆☆☆☆'}
               </Text>
               <Text
                 style={[
@@ -362,7 +462,9 @@ export default function MentorDetailsScreen({navigation}: any) {
                     fontFamily: theme.fonts.regular,
                   },
                 ]}>
-                "Clear, grounded and enormously helpful."
+                {firstReview
+                  ? `"${firstReview.review || firstReview.comment || ''}"`
+                  : 'No reviews yet — be the first to book a session.'}
               </Text>
               <Text
                 style={[
@@ -372,7 +474,11 @@ export default function MentorDetailsScreen({navigation}: any) {
                     fontFamily: theme.fonts.medium,
                   },
                 ]}>
-                — Priya, career switcher
+                {firstReview
+                  ? `— ${firstReview.seeker_name || firstReview.full_name || 'Seeker'}${
+                      firstReview.created_at ? ', ' + formatDateTime(firstReview.created_at) : ''
+                    }`
+                  : ''}
               </Text>
             </View>
           </View>
@@ -394,10 +500,18 @@ export default function MentorDetailsScreen({navigation}: any) {
                   fontFamily: theme.fonts.regular,
                 },
               ]}>
-              Earliest open slots for 1-on-1 sessions:
+              {days[0]
+                ? `Earliest open slots (${days[0].date}):`
+                : 'Earliest open slots for 1-on-1 sessions:'}
             </Text>
             <View style={styles.availWrap}>
-              <MentorAvailability times={m.availability} />
+              {nextSlots.length ? (
+                <MentorAvailability times={nextSlots} />
+              ) : (
+                <Text style={{color: theme.colors.mutedText, fontFamily: theme.fonts.regular, fontSize: 13}}>
+                  No open slots right now.
+                </Text>
+              )}
             </View>
           </View>
         </View>
@@ -428,7 +542,7 @@ export default function MentorDetailsScreen({navigation}: any) {
                   fontFamily: theme.fonts.regular,
                 },
               ]}>
-              {' '}/ 30 min
+              {' '}/ session
             </Text>
           </Text>
           <Text
@@ -445,6 +559,7 @@ export default function MentorDetailsScreen({navigation}: any) {
         <Button
           title="Book session"
           onPress={book}
+          loading={starting === 'book'}
           style={styles.footerBtn}
         />
       </View>

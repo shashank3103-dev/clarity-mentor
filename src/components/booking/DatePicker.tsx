@@ -20,19 +20,28 @@ const MONTH_NAMES = [
 const DAYS_OF_WEEK = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 export interface DatePickerProps {
-  selectedDate: string; // e.g. "20 October 2026"
+  selectedDate: string | null; // YYYY-MM-DD
   onSelectDate: (date: string) => void;
+  // When given, only these YYYY-MM-DD dates are selectable.
+  availableDates?: string[];
 }
+
+const pad = (n: number) => String(n).padStart(2, '0');
+const toISO = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 
 export default function DatePicker({
   selectedDate,
   onSelectDate,
+  availableDates,
 }: DatePickerProps) {
   const {theme} = useTheme();
 
-  // Default to October 2026
-  const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(9); // 0-indexed, 9 = October
+  const initial = new Date(
+    `${selectedDate || availableDates?.[0] || toISO(new Date().getFullYear(), new Date().getMonth(), 1)}T00:00:00`,
+  );
+  const [currentYear, setCurrentYear] = useState(initial.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(initial.getMonth()); // 0-indexed
+  const available = availableDates ? new Set(availableDates) : null;
 
   const prevMonth = () => {
     if (currentMonth === 0) {
@@ -65,14 +74,11 @@ export default function DatePicker({
     days.push(d);
   }
 
-  const isSelected = (day: number) => {
-    const formatted = `${day} ${MONTH_NAMES[currentMonth]} ${currentYear}`;
-    return selectedDate === formatted;
-  };
+  const isSelected = (day: number) => selectedDate === toISO(currentYear, currentMonth, day);
+  const isEnabled = (day: number) => !available || available.has(toISO(currentYear, currentMonth, day));
 
   const handlePick = (day: number) => {
-    const formatted = `${day} ${MONTH_NAMES[currentMonth]} ${currentYear}`;
-    onSelectDate(formatted);
+    if (isEnabled(day)) onSelectDate(toISO(currentYear, currentMonth, day));
   };
 
   return (
@@ -152,13 +158,18 @@ export default function DatePicker({
           }
 
           const active = isSelected(day);
+          const enabled = isEnabled(day);
 
           return (
             <Pressable
               key={`day-${day}`}
               onPress={() => handlePick(day)}
+              disabled={!enabled}
+              accessibilityState={{disabled: !enabled, selected: active}}
               style={[
                 styles.dayCell,
+                !enabled && {opacity: 0.3},
+                enabled && !active && available && {backgroundColor: theme.colors.surfaceMuted},
                 active && [
                   styles.activeDay,
                   {backgroundColor: theme.colors.primary},
