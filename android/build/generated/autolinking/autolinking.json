@@ -9,7 +9,7 @@
       "platforms": {
         "ios": {
           "podspecPath": "/Users/kurmato/Desktop/clarity/node_modules/@react-native-async-storage/async-storage/RNCAsyncStorage.podspec",
-          "version": "2.1.0",
+          "version": "2.2.0",
           "configurations": [],
           "scriptPhases": []
         },
